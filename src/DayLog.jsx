@@ -145,6 +145,29 @@ function saveEntries(entries) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
 }
 
+// ── DraftCard ─────────────────────────────────────────────
+function DraftCard({ entry }) {
+  const t = new Date(entry.timestamp).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  return (
+    <div className="draft-card">
+      <div className="draft-avatar">P</div>
+      <div className="draft-body">
+        <div className="draft-meta">
+          <span className="draft-name">Day Log</span>
+          <span className="draft-dot">·</span>
+          <span className="draft-time">{t}</span>
+        </div>
+        <div className="draft-lines">
+          {entry.activity && <span>🗂 {entry.activity}</span>}
+          {entry.mood && <span>{entry.mood}</span>}
+          {entry.energy && <span>{entry.energy}</span>}
+          {entry.note && <span className="draft-note">📝 {entry.note}</span>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────
 export default function DayLog() {
   const [activity, setActivity] = useState('')
@@ -154,6 +177,7 @@ export default function DayLog() {
   const [time, setTime] = useState('')
   const [logged, setLogged] = useState(false)
   const [entries, setEntries] = useState(() => loadEntries())
+  const [view, setView] = useState('compose')
   const textareaRef = useRef(null)
 
   useEffect(() => {
@@ -225,6 +249,13 @@ export default function DayLog() {
     window.location.href = `mailto:parthpandhe8@gmail.com?subject=${subject}&body=${encodeURIComponent(body)}`
     localStorage.removeItem(STORAGE_KEY)
     setEntries([])
+    setView('compose')
+  }
+
+  function handleClearAll() {
+    localStorage.removeItem(STORAGE_KEY)
+    setEntries([])
+    setView('compose')
   }
 
   function handleReset() {
@@ -234,6 +265,45 @@ export default function DayLog() {
     setNote('')
   }
 
+  // ── Drafts view ───────────────────────────────────────
+  if (view === 'drafts') {
+    return (
+      <div className="daylog-root">
+        <header className="header">
+          <div className="header-left">
+            <button className="icon-btn" onClick={() => setView('compose')} title="Back">
+              <BackIcon />
+            </button>
+            <h1>Drafts</h1>
+          </div>
+        </header>
+
+        <div className="drafts-list">
+          {entries.length === 0 ? (
+            <div className="drafts-empty">No logs yet today</div>
+          ) : (
+            entries.map((entry, i) => (
+              <div key={entry.timestamp}>
+                <DraftCard entry={entry} />
+                {i < entries.length - 1 && <div className="divider" style={{ margin: 0 }} />}
+              </div>
+            ))
+          )}
+        </div>
+
+        {entries.length > 0 && (
+          <div className="drafts-footer">
+            <button className="summary-btn" onClick={handleSendSummary}>
+              📧 Send Daily Summary
+            </button>
+            <button className="clear-link" onClick={handleClearAll}>Clear all logs</button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── Compose view ──────────────────────────────────────
   return (
     <div className="daylog-root">
       <header className="header">
@@ -242,15 +312,15 @@ export default function DayLog() {
             <BackIcon />
           </button>
           <h1>New post</h1>
-        </div>
-        <div className="header-right">
           {entries.length > 0 && (
-            <span className="entry-count">{entries.length} logged</span>
+            <button className="drafts-pill" onClick={() => setView('drafts')}>
+              Drafts <span className="drafts-count">{entries.length}</span>
+            </button>
           )}
-          <button className="post-btn" onClick={handleSend} disabled={logged}>
-            {logged ? 'Logged ✓' : 'Post'}
-          </button>
         </div>
+        <button className="post-btn" onClick={handleSend} disabled={logged}>
+          {logged ? 'Logged ✓' : 'Post'}
+        </button>
       </header>
 
       <div className="time-strip">{time}</div>
@@ -314,12 +384,7 @@ export default function DayLog() {
       </div>
 
       <div className="footer">
-        {entries.length > 0 && (
-          <button className="summary-btn" onClick={handleSendSummary}>
-            📧 Send Daily Summary ({entries.length} {entries.length === 1 ? 'entry' : 'entries'})
-          </button>
-        )}
-        <button className="reset-btn" onClick={handleReset}>↺ Clear all</button>
+        <button className="reset-btn" onClick={handleReset}>↺ Clear form</button>
       </div>
     </div>
   )
