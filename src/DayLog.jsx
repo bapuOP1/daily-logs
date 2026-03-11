@@ -119,6 +119,32 @@ function CharRing({ value }) {
   )
 }
 
+// ── localStorage helpers ──────────────────────────────────
+const STORAGE_KEY = 'daylog_entries'
+
+function loadEntries() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const entries = JSON.parse(raw)
+    // Auto-clear if entries are from a previous day
+    if (entries.length > 0) {
+      const entryDate = new Date(entries[0].timestamp).toDateString()
+      if (entryDate !== new Date().toDateString()) {
+        localStorage.removeItem(STORAGE_KEY)
+        return []
+      }
+    }
+    return entries
+  } catch {
+    return []
+  }
+}
+
+function saveEntries(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+}
+
 // ── Main Component ────────────────────────────────────────
 export default function DayLog() {
   const [activity, setActivity] = useState('')
@@ -126,6 +152,8 @@ export default function DayLog() {
   const [energy, setEnergy] = useState('')
   const [note, setNote] = useState('')
   const [time, setTime] = useState('')
+  const [logged, setLogged] = useState(false)
+  const [entries, setEntries] = useState(() => loadEntries())
   const textareaRef = useRef(null)
 
   useEffect(() => {
@@ -148,27 +176,55 @@ export default function DayLog() {
       alert('Pick at least one option before posting!')
       return
     }
-    const fullTime = new Date().toLocaleString('en-IN', {
-      weekday: 'long', year: 'numeric', month: 'short',
-      day: 'numeric', hour: '2-digit', minute: '2-digit',
+    const entry = {
+      timestamp: new Date().toISOString(),
+      activity,
+      mood,
+      energy,
+      note,
+    }
+    const updated = [...entries, entry]
+    saveEntries(updated)
+    setEntries(updated)
+    setLogged(true)
+    setTimeout(() => {
+      setLogged(false)
+      handleReset()
+    }, 1500)
+  }
+
+  function handleSendSummary() {
+    const dateLabel = new Date().toLocaleString('en-IN', {
+      weekday: 'long', day: 'numeric', month: 'short', year: 'numeric',
     })
+    const entryBlocks = entries.map((e, i) => {
+      const t = new Date(e.timestamp).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' })
+      return [
+        `═══════════════════════════`,
+        `ENTRY ${i + 1} — ${t}`,
+        `🗂  Activity : ${e.activity || '—'}`,
+        `😶  Mood     : ${e.mood || '—'}`,
+        `🔋  Energy   : ${e.energy || '—'}`,
+        e.note ? `📝  Note     : ${e.note}` : null,
+      ].filter(Boolean).join('\n')
+    })
+
     const body = [
-      `[daylog] ${fullTime}`,
+      `[daylog] ${dateLabel} — Daily Summary`,
       '',
-      '─────────────────────────',
-      `🗂  Activity : ${activity || '—'}`,
-      `😶  Mood     : ${mood || '—'}`,
-      `🔋  Energy   : ${energy || '—'}`,
-      note ? `📝  Note     : ${note}` : null,
-      '─────────────────────────',
+      ...entryBlocks,
+      '═══════════════════════════',
       '',
+      `Total entries: ${entries.length}`,
       'Logged via Day Log',
-    ].filter(Boolean).join('\n')
+    ].join('\n')
 
     const subject = encodeURIComponent(
-      `[daylog] ${new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}`
+      `[daylog] ${new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} — Daily Summary`
     )
     window.location.href = `mailto:parthpandhe8@gmail.com?subject=${subject}&body=${encodeURIComponent(body)}`
+    localStorage.removeItem(STORAGE_KEY)
+    setEntries([])
   }
 
   function handleReset() {
@@ -187,7 +243,14 @@ export default function DayLog() {
           </button>
           <h1>New post</h1>
         </div>
-        <button className="post-btn" onClick={handleSend}>Post</button>
+        <div className="header-right">
+          {entries.length > 0 && (
+            <span className="entry-count">{entries.length} logged</span>
+          )}
+          <button className="post-btn" onClick={handleSend} disabled={logged}>
+            {logged ? 'Logged ✓' : 'Post'}
+          </button>
+        </div>
       </header>
 
       <div className="time-strip">{time}</div>
@@ -251,6 +314,11 @@ export default function DayLog() {
       </div>
 
       <div className="footer">
+        {entries.length > 0 && (
+          <button className="summary-btn" onClick={handleSendSummary}>
+            📧 Send Daily Summary ({entries.length} {entries.length === 1 ? 'entry' : 'entries'})
+          </button>
+        )}
         <button className="reset-btn" onClick={handleReset}>↺ Clear all</button>
       </div>
     </div>

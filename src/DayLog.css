@@ -111,7 +111,28 @@
 }
 .tool-btn:hover { background: var(--blue-dim); }
 
-.footer { padding: 12px 16px 32px; border-top: 1px solid var(--border); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+.entry-count {
+  font-size: 13px; font-weight: 600; color: var(--blue);
+  background: var(--blue-dim); border-radius: 9999px;
+  padding: 2px 10px;
+}
+
+.post-btn:disabled {
+  background: #2a6a9e; cursor: default; opacity: 0.9;
+}
+
+.footer { padding: 12px 16px 32px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+
+.summary-btn {
+  width: 100%; padding: 11px; background: var(--blue);
+  border: none; border-radius: 9999px;
+  font-size: 15px; font-weight: 700; color: #fff;
+  cursor: pointer; transition: background 0.2s; -webkit-tap-highlight-color: transparent;
+}
+.summary-btn:hover { background: var(--blue-hover); }
+
 .reset-btn {
   width: 100%; padding: 10px; background: transparent;
   border: 1px solid var(--border); border-radius: 9999px;
